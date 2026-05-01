@@ -1,0 +1,81 @@
+FROM nvidia/cuda:${NVIDIA_CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION} AS builder
+
+ARG CUDA_ARCHITECTURES=all-major
+ENV QT_XCB_GL_INTEGRATION=xcb_egl
+ARG FETCHCONTENT_FULLY_DISCONNECTED=OFF
+ENV CCACHE_DIR=/colmap/build/.ccache
+ENV CCACHE_BASEDIR=/colmap
+
+# Prevent stop building ubuntu at time zone selection.
+ENV DEBIAN_FRONTEND=noninteractive
+
+
+# ------------------------------
+# COLMAP base dependencies
+# ------------------------------
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        ccache \
+        wget \
+        ca-certificates \
+        cmake \
+        ninja-build \
+        build-essential \
+        libboost-program-options-dev \
+        libboost-graph-dev \
+        libboost-system-dev \
+        libeigen3-dev \
+        libopenimageio-dev \
+        openimageio-tools \
+        libmetis-dev \
+        libgoogle-glog-dev \
+        libgflags-dev \
+        libgtest-dev \
+        libgmock-dev \
+        libsqlite3-dev \
+        libglew-dev \
+        qt6-base-dev \
+        libqt6opengl6-dev \
+        libqt6openglwidgets6 \
+        libcgal-dev \
+        libceres-dev \
+        libatlas-base-dev \
+        libsuitesparse-dev \
+        libcurl4-openssl-dev \
+        libssl-dev \
+        libmkl-full-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Optional cuDSS setup used by your COLMAP environment.
+RUN wget -q https://developer.download.nvidia.com/compute/cudss/0.7.1/local_installers/cudss-local-repo-ubuntu2404-0.7.1_0.7.1-1_amd64.deb -O /tmp/cudss-local-repo.deb && \
+    dpkg -i /tmp/cudss-local-repo.deb && \
+    cp /var/cudss-local-repo-ubuntu2404-0.7.1/cudss-*-keyring.gpg /usr/share/keyrings/ && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        cudss-cuda-12 \
+        libcudss0-cuda-12 \
+        libcudss0-dev-cuda-12 && \
+    rm -f /tmp/cudss-local-repo.deb && \
+    rm -rf /var/lib/apt/lists/*
+
+# Fix issue in Ubuntu's openimageio CMake config.
+RUN mkdir -p /usr/include/opencv4
+
+# ------------------------------
+# dwvo2colmap (Go project) dependencies
+# ------------------------------
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        curl \
+        git \
+        pkg-config \
+        golang-go \
+        libgl1-mesa-dev \
+        xorg-dev \
+        libxrandr-dev \
+        libxinerama-dev \
+        libxcursor-dev \
+        libxi-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+
